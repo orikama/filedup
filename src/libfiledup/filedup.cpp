@@ -165,9 +165,12 @@ namespace fdup
 {
 
 std::vector<DuplicateGroup>
-get_duplicate_files(const Options &options)
+get_duplicate_files(Options &options)
 {
     validate_options(options);
+
+    options.dir1.make_preferred();
+    options.dir2.make_preferred();
 
     const auto dir1_files = get_files_grouped_by_size(options.dir1, options.search_recursively);
     const auto dir2_files = get_files_grouped_by_size(options.dir2, options.search_recursively);

@@ -50,13 +50,13 @@ parse_options(int argc, const char *argv[])
 int main(int argc, const char *argv[])
 {
     try {
-        if (const auto options_optional = parse_options(argc, argv)) {
-            const auto &options = options_optional.value();
+        if (auto options_optional = parse_options(argc, argv)) {
+            auto &options = options_optional.value();
 
-            for (auto &duplicate_group: fdup::get_duplicate_files(options)) {
+            for (const auto &duplicate_group: fdup::get_duplicate_files(options)) {
                 std::cout << duplicate_group.files.size() << " files, " << duplicate_group.file_size << " bytes each:\n";
-                for (auto &duplicate_file: duplicate_group.files) {
-                    std::cout << '\t' << duplicate_file.make_preferred() << '\n';
+                for (const auto &duplicate_file: duplicate_group.files) {
+                    std::cout << '\t' << duplicate_file << '\n';
                 }
             }
         }
@@ -65,7 +65,7 @@ int main(int argc, const char *argv[])
         std::cout << "ERROR at boost::filesystem: " << e.code().message() << std::endl;
     }
     catch (const std::exception &e) {
-        std::cout << "ERROR " << e.what() << std::endl;
+        std::cout << "ERROR: " << e.what() << std::endl;
     }
 
     return 0;
