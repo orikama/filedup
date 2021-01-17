@@ -12,6 +12,7 @@ struct Options
 {
     boost::filesystem::path dir1;
     boost::filesystem::path dir2;
+    bool search_recursively;
 };
 
 struct DuplicateGroup

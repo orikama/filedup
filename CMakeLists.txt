@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 project(filedup CXX)
 
-
+# NOTE: it works without linking to Boost.TypeErasure ?
 find_package(Boost REQUIRED COMPONENTS filesystem program_options)
 
 
