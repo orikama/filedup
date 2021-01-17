@@ -138,9 +138,11 @@ find_duplicates(const std::vector<fdup::DuplicateGroup> &file_groups)
 
 void validate_options(const fdup::Options &options)
 {
-    if (fs::is_directory(options.dir1) == false
-        || fs::is_directory(options.dir2) == false) {
-        throw std::exception("dir1 or dir2 is not a directory");
+    if (fs::is_directory(options.dir1) == false) {
+        throw std::exception("DIR1 is not a directory");
+    }
+    if (fs::is_directory(options.dir2) == false) {
+        throw std::exception("DIR2 is not a directory");
     }
 
     const auto dir1_canonical = fs::canonical(options.dir1).string();
