@@ -8,6 +8,12 @@
 namespace fdup
 {
 
+struct Options
+{
+    boost::filesystem::path dir1;
+    boost::filesystem::path dir2;
+};
+
 struct DuplicateGroup
 {
     boost::uintmax_t file_size;
@@ -19,6 +25,6 @@ struct DuplicateGroup
 };
 
 std::vector<DuplicateGroup>
-get_duplicate_files(const boost::filesystem::path &dir1, const boost::filesystem::path &dir2);
+get_duplicate_files(const Options &options);
 
 } // namespace fdup

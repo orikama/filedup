@@ -85,7 +85,7 @@ find_duplicates(const std::vector<fdup::DuplicateGroup> &file_groups)
             std::vector<boost::filesystem::path> duplicate_group{};
             const auto &file_for_comparison = size_group.files[i];
 
-            for(std::size_t j = i + 1; j != files_in_group; ++j) {
+            for (std::size_t j = i + 1; j != files_in_group; ++j) {
                 if (indices_to_skip.find(j) == indices_to_skip.end()) {
                     const auto &file_to_compare = size_group.files[j];
                     if (is_files_binary_equal(file_for_comparison, file_to_compare)) {
@@ -124,21 +124,31 @@ find_duplicates(const std::vector<fdup::DuplicateGroup> &file_groups)
     return duplicates;
 }
 
+void validate_options(const fdup::Options &options)
+{
+    if (boost::filesystem::is_directory(options.dir1) == false
+        || boost::filesystem::is_directory(options.dir2) == false) {
+        throw std::exception("dir1 or dir2 is not a directory");
+    }
+
+    if (options.dir1 == options.dir2) {
+        throw std::exception("dir1 and dir2 must be different paths");
+    }
+}
+
 
 namespace fdup
 {
 
 std::vector<DuplicateGroup>
-get_duplicate_files(const boost::filesystem::path &dir1, const boost::filesystem::path &dir2)
+get_duplicate_files(const Options &options)
 {
-    // TODO: Check that dir1 != dir2
-    // TODO: Probably move options validation to its own function (when I made them)
-    if (boost::filesystem::is_directory(dir1) == false || boost::filesystem::is_directory(dir2) == false) {
-        throw std::exception("dir1 or dir2 is not a directory");
-    }
+    validate_options(options);
 
-    const auto possible_duplicates = merge_size_groups(get_files_grouped_by_size(dir1),
-                                                       get_files_grouped_by_size(dir2));
+    const auto dir1_files = get_files_grouped_by_size(options.dir1);
+    const auto dir2_files = get_files_grouped_by_size(options.dir2);
+
+    const auto possible_duplicates = merge_size_groups(dir1_files, dir2_files);
 
     return find_duplicates(possible_duplicates);
 }

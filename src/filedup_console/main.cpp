@@ -7,7 +7,7 @@
 #include <libfiledup/filedup.hpp>
 
 
-boost::optional<std::pair<boost::filesystem::path, boost::filesystem::path>>
+boost::optional<fdup::Options>
 parse_options(int argc, const char *argv[])
 {
     namespace po = boost::program_options;
@@ -38,26 +38,32 @@ parse_options(int argc, const char *argv[])
     const auto dirs = vm["dirs"].as<std::vector<boost::filesystem::path>>();
     // TODO: Check that there are actually two of them?
 
-    return std::make_pair(dirs[0], dirs[1]);
+    fdup::Options options;
+    options.dir1 = dirs[0];
+    options.dir2 = dirs[1];
+
+    return options;
 }
 
 int main(int argc, const char *argv[])
 {
     try {
-        if (const auto two_dirs_optional = parse_options(argc, argv)) {
-            const auto &two_dirs = two_dirs_optional.value();
+        if (const auto options_optional = parse_options(argc, argv)) {
+            const auto &options = options_optional.value();
 
-            for (auto &duplicate_group: fdup::get_duplicate_files(two_dirs.first, two_dirs.second)) {
-                std::cout << duplicate_group.files.size() << " files * " << duplicate_group.file_size << " bytes\n";
+            for (auto &duplicate_group: fdup::get_duplicate_files(options)) {
+                std::cout << duplicate_group.files.size() << " files, " << duplicate_group.file_size << " bytes each:\n";
                 for (auto &duplicate_file: duplicate_group.files) {
                     std::cout << '\t' << duplicate_file.make_preferred() << '\n';
                 }
-                std::cout << '\n';
             }
         }
     }
     catch (const boost::filesystem::filesystem_error &e) {
         std::cout << "ERROR at boost::filesystem: " << e.code().message() << std::endl;
+    }
+    catch (const std::exception &e) {
+        std::cout << "ERROR" << e.what() << std::endl;
     }
 
     return 0;
