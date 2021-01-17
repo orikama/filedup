@@ -152,7 +152,12 @@ void validate_options(const fdup::Options &options)
         throw std::exception("DIR1 and DIR2 must not point to the same directory");
     }
 
-    // TODO: validation for 'search_recursively', one dir1 shouldn't be subfolder of the other
+    if (options.search_recursively) {
+        const auto min_length = std::min(dir1_canonical.size(), dir2_canonical.size());
+        if (dir1_canonical.compare(0, min_length, dir2_canonical, 0, min_length) == 0) {
+            throw std::exception("One DIR cannot be subfolder of the other, if 'recursively' option is specified");
+        }
+    }
 }
 
 
