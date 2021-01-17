@@ -32,3 +32,11 @@ add_executable(filedup_console ${filedup_console_SRC})
 target_include_directories(filedup_console PRIVATE ${filedup_console_SRC_DIR})
 target_link_libraries(filedup_console PRIVATE libfiledup Boost::program_options)
 set_property(TARGET filedup_console PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
+# NOTE: Use smth like this: ?
+#if(WIN32)
+#   if(VCPKG_LIBRARY_LINKAGE == static)
+#       set_property(TARGET libfiledup PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+#       set_property(TARGET filedup_console PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+#   endif()
+#endif()
