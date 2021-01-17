@@ -143,8 +143,11 @@ void validate_options(const fdup::Options &options)
         throw std::exception("dir1 or dir2 is not a directory");
     }
 
-    if (options.dir1 == options.dir2) {
-        throw std::exception("dir1 and dir2 must be different paths");
+    const auto dir1_canonical = fs::canonical(options.dir1).string();
+    const auto dir2_canonical = fs::canonical(options.dir2).string();
+
+    if (dir1_canonical == dir2_canonical) {
+        throw std::exception("DIR1 and DIR2 must not point to the same directory");
     }
 
     // TODO: validation for 'search_recursively', one dir1 shouldn't be subfolder of the other
