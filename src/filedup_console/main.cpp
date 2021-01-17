@@ -48,7 +48,8 @@ int main(int argc, const char *argv[])
             const auto &two_dirs = two_dirs_optional.value();
 
             for (auto &duplicate_group: fdup::get_duplicate_files(two_dirs.first, two_dirs.second)) {
-                for(auto &duplicate_file: duplicate_group) {
+                std::cout << duplicate_group.files.size() << " files * " << duplicate_group.file_size << " bytes\n";
+                for (auto &duplicate_file: duplicate_group.files) {
                     std::cout << '\t' << duplicate_file.make_preferred() << '\n';
                 }
                 std::cout << '\n';

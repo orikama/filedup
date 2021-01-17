@@ -33,10 +33,10 @@ get_files_grouped_by_size(const boost::filesystem::path &directory)
 }
 
 // NOTE: returns size groups with at least 2 files in a group
-std::vector<std::vector<boost::filesystem::path>>
+std::vector<fdup::DuplicateGroup>
 merge_size_groups(const FilesGroupedBySize &dir1_size_groups, const FilesGroupedBySize &dir2_size_groups)
 {
-    std::vector<std::vector<boost::filesystem::path>> merged_groups{};
+    std::vector<fdup::DuplicateGroup> merged_groups{};
 
     for (const auto &dir1_group: dir1_size_groups) {
         const auto dir2_group_it = dir2_size_groups.find(dir1_group.first);
@@ -47,7 +47,7 @@ merge_size_groups(const FilesGroupedBySize &dir1_size_groups, const FilesGrouped
             std::vector<boost::filesystem::path> merged_group{dir1_group.second}; // NOTE: move ?
             merged_group.insert(merged_group.end(), dir2_group.begin(), dir2_group.end());
 
-            merged_groups.push_back(std::move(merged_group));
+            merged_groups.emplace_back(dir1_group.first, std::move(merged_group));
         }
     }
 
@@ -68,26 +68,26 @@ is_files_binary_equal(const boost::filesystem::path &file1, const boost::filesys
                       file2_stream_begin, file_stream_end);
 }
 
-std::vector<std::vector<boost::filesystem::path>>
-find_duplicates(const std::vector<std::vector<boost::filesystem::path>> &file_groups)
+std::vector<fdup::DuplicateGroup>
+find_duplicates(const std::vector<fdup::DuplicateGroup> &file_groups)
 {
-    std::vector<std::vector<boost::filesystem::path>> duplicates{};
+    std::vector<fdup::DuplicateGroup> duplicates{};
 
     for (const auto &size_group: file_groups) {
-        const auto size_group_size = size_group.size(); // NOTE: nice name
+        const auto files_in_group = size_group.files.size(); // NOTE: nice name
         std::unordered_set<std::size_t> indices_to_skip{};
 
-        for (std::size_t i = 0; i != size_group_size - 1; ++i) {
+        for (std::size_t i = 0; i != files_in_group - 1; ++i) {
             if (indices_to_skip.find(i) != indices_to_skip.end()) {
                 continue;
             }
 
             std::vector<boost::filesystem::path> duplicate_group{};
-            const auto &file_for_comparison = size_group[i];
+            const auto &file_for_comparison = size_group.files[i];
 
-            for(std::size_t j = i + 1; j != size_group_size; ++j) {
+            for(std::size_t j = i + 1; j != files_in_group; ++j) {
                 if (indices_to_skip.find(j) == indices_to_skip.end()) {
-                    const auto &file_to_compare = size_group[j];
+                    const auto &file_to_compare = size_group.files[j];
                     if (is_files_binary_equal(file_for_comparison, file_to_compare)) {
                         duplicate_group.push_back(file_to_compare);
                         indices_to_skip.insert(j);
@@ -97,7 +97,7 @@ find_duplicates(const std::vector<std::vector<boost::filesystem::path>> &file_gr
 
             if (duplicate_group.size() > 0) {
                 duplicate_group.push_back(file_for_comparison);
-                duplicates.push_back(std::move(duplicate_group));
+                duplicates.emplace_back(size_group.file_size, std::move(duplicate_group));
             }
         }
 
@@ -128,7 +128,7 @@ find_duplicates(const std::vector<std::vector<boost::filesystem::path>> &file_gr
 namespace fdup
 {
 
-std::vector<std::vector<boost::filesystem::path>>
+std::vector<DuplicateGroup>
 get_duplicate_files(const boost::filesystem::path &dir1, const boost::filesystem::path &dir2)
 {
     // TODO: Check that dir1 != dir2
