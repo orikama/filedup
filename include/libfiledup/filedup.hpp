@@ -2,7 +2,8 @@
 
 #include <vector>
 
-#include <boost/filesystem.hpp>
+#include <boost/filesystem/path.hpp>
+#include <boost/filesystem/exception.hpp>
 
 
 namespace fdup
