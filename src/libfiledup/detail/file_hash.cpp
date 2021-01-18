@@ -13,13 +13,13 @@ namespace detail {
 
 FileHash::FileHash(const hash_t &hash)
 {
-    std::memcpy(m_hash, hash, 4 * sizeof(int));
+    std::memcpy(m_hash, hash, sizeof(hash_t));
 }
 
 bool
 FileHash::operator==(const FileHash &other) const noexcept
 {
-    return std::memcmp(m_hash, other.m_hash, 4 * sizeof(unsigned int)) == 0;
+    return std::memcmp(m_hash, other.m_hash, sizeof(hash_t)) == 0;
 }
 
 std::vector<FileHash>
@@ -34,9 +34,8 @@ FileHash::get_full_hashes(const boost::uintmax_t bytes_to_read, const std::vecto
     return get_hashes(bytes_to_read, files);
 }
 
-
 std::vector<FileHash>
-FileHash::get_hashes(const boost::uintmax_t bytes_to_read, const std::vector<boost::filesystem::path> &files)
+FileHash::get_hashes(const boost::uintmax_t bytes_to_read, const std::vector<fs::path> &files)
 {
     std::vector<FileHash> hashes{};
     hashes.reserve(files.size());
@@ -57,7 +56,7 @@ FileHash::get_hashes(const boost::uintmax_t bytes_to_read, const std::vector<boo
         }
 
         hash.get_digest(digest);
-        hashes.push_back(FileHash(digest)); // NOTE: emplace?
+        hashes.push_back(digest);
     }
 
     return hashes;

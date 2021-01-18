@@ -14,8 +14,6 @@ class FileHash
     using hash_t = boost::uuids::detail::md5::digest_type;
 
 public:
-    FileHash(const hash_t &hash);
-
     bool operator==(const FileHash &other) const noexcept;
 
     static std::vector<FileHash> get_partial_hashes(const std::vector<boost::filesystem::path> &files);
@@ -23,6 +21,7 @@ public:
                                                  const std::vector<boost::filesystem::path> &files);
 
 private:
+    FileHash(const hash_t &hash);
     static std::vector<FileHash> get_hashes(const boost::uintmax_t bytes_to_read,
                                             const std::vector<boost::filesystem::path> &files);
 
