@@ -26,7 +26,6 @@ struct DuplicateGroup
     {}
 };
 
-std::vector<DuplicateGroup>
-get_duplicate_files(Options &options);
+std::vector<DuplicateGroup> get_duplicate_files(Options &options);
 
 } // namespace fdup

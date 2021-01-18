@@ -71,135 +71,116 @@ merge_size_groups(FilesGroupedBySize &&dir1_size_groups, FilesGroupedBySize &&di
 }
 
 bool
-is_files_binary_equal(const fs::path &file1, const fs::path &file2)
+are_files_binary_equal(const boost::uintmax_t files_size, const fs::path &file1, const fs::path &file2)
 {
+    // NOTE: boost mapped_file?
+    constexpr auto CHUNK_SIZE = 32 * 512;
+    char buffer1[CHUNK_SIZE];
+    char buffer2[CHUNK_SIZE];
+
     std::ifstream file1_stream{file1.c_str(), std::ifstream::binary};
     std::ifstream file2_stream{file2.c_str(), std::ifstream::binary};
 
-    std::istreambuf_iterator<char> file1_stream_begin{file1_stream};
-    std::istreambuf_iterator<char> file2_stream_begin{file2_stream};
-    std::istreambuf_iterator<char> file_stream_end{};
+    auto bytes_left = files_size;
+    while (bytes_left > 0) {
+        const auto next_read = bytes_left > CHUNK_SIZE ? CHUNK_SIZE : bytes_left;
+        file1_stream.read(buffer1, next_read);
+        file2_stream.read(buffer2, next_read);
+        if (std::memcmp(buffer1, buffer2, next_read) != 0) {
+            break;
+        }
+        bytes_left -= next_read;
+    }
 
-    return std::equal(file1_stream_begin, file_stream_end,
-                      file2_stream_begin, file_stream_end);
+    return bytes_left == 0;
 }
 
-void
-split_into_duplicate_groups(const std::vector<fdup::detail::FileHash> &hashes,
-                            std::vector<fdup::DuplicateGroup> &duplicate_groups,
-                            fdup::DuplicateGroup &&file_group)
+std::vector<fdup::DuplicateGroup>
+split_by_hash(std::vector<fdup::DuplicateGroup> &&duplicate_groups, bool calculate_partial_hash)
 {
-    const auto files_in_group = file_group.files.size();
-    std::unordered_set<std::size_t> indices_to_skip{};
+    std::vector<fdup::DuplicateGroup> new_duplicate_groups{};
 
-    for (std::size_t i = 0; i != files_in_group - 1; ++i) {
-        if (indices_to_skip.find(i) != indices_to_skip.end()) {
+    for (auto &duplicate_group: duplicate_groups) {
+        const auto duplicate_group_size = duplicate_group.files.size();
+        // No need to mess with hashes if there are only two files in a group
+        if (duplicate_group_size == 2) {
+            new_duplicate_groups.push_back(std::move(duplicate_group));
             continue;
         }
 
-        std::vector<fs::path> duplicate_files{};
-        const auto &hash_for_comparison = hashes[i];
+        const auto hashes = calculate_partial_hash
+            ? fdup::detail::FileHash::get_partial_hashes(duplicate_group.files)
+            : fdup::detail::FileHash::get_full_hashes(duplicate_group.file_size, duplicate_group.files);
 
-        for (std::size_t j = i + 1; j != files_in_group; ++j) {
-            if (indices_to_skip.find(j) == indices_to_skip.end()) {
-                const auto &hash_to_compare = hashes[j];
-
-                if (hash_for_comparison == hash_to_compare) {
-                    duplicate_files.push_back(std::move(file_group.files[j]));
-                    indices_to_skip.insert(j);
-                }
-            }
-        }
-
-        if (duplicate_files.empty() == false) {
-            duplicate_files.push_back(std::move(file_group.files[i]));
-            duplicate_groups.emplace_back(file_group.file_size, std::move(duplicate_files));
-        }
-    }
-}
-
-// NOTE: If there are only two files in a group, no need to check they hashes
-std::vector<fdup::DuplicateGroup>
-split_by_partial_hash(std::vector<fdup::DuplicateGroup> &&files_grouped_by_size)
-{
-    std::vector<fdup::DuplicateGroup> duplicate_groups{};
-
-    for (auto &file_group: files_grouped_by_size) {
-        const auto hashes = fdup::detail::FileHash::get_partial_hashes(file_group.files);
-        split_into_duplicate_groups(hashes, duplicate_groups, std::move(file_group));
-    }
-
-    return duplicate_groups;
-}
-
-std::vector<fdup::DuplicateGroup>
-split_by_full_hash(std::vector<fdup::DuplicateGroup> &&files_grouped_by_partial_hash)
-{
-    std::vector<fdup::DuplicateGroup> duplicate_groups{};
-
-    for (auto &file_group: files_grouped_by_partial_hash) {
-        const auto hashes = fdup::detail::FileHash::get_full_hashes(file_group.file_size, file_group.files);
-        split_into_duplicate_groups(hashes, duplicate_groups, std::move(file_group));
-    }
-
-    return duplicate_groups;
-}
-
-std::vector<fdup::DuplicateGroup>
-find_duplicates(const std::vector<fdup::DuplicateGroup> &file_groups)
-{
-    std::vector<fdup::DuplicateGroup> duplicates{};
-
-    for (const auto &size_group: file_groups) {
-        const auto files_in_group = size_group.files.size();
         std::unordered_set<std::size_t> indices_to_skip{};
-        // NOTE: wtf was this comment below ?
-        // split into duplicate groups, grouped by size
-        for (std::size_t i = 0; i != files_in_group - 1; ++i) {
+
+        for (std::size_t i = 0; i != duplicate_group_size - 1; ++i) {
             if (indices_to_skip.find(i) != indices_to_skip.end()) {
                 continue;
             }
 
-            std::vector<fs::path> duplicate_group{};
-            const auto &file_for_comparison = size_group.files[i];
+            std::vector<fs::path> duplicate_files{}; // NOTE: not actually duplicates, just duplicate hashes
+            const auto &hash_for_comparison = hashes[i];
 
-            for (std::size_t j = i + 1; j != files_in_group; ++j) {
+            for (std::size_t j = i + 1; j != duplicate_group_size; ++j) {
                 if (indices_to_skip.find(j) == indices_to_skip.end()) {
-                    const auto &file_to_compare = size_group.files[j];
-                    if (is_files_binary_equal(file_for_comparison, file_to_compare)) {
-                        duplicate_group.push_back(file_to_compare);
+                    const auto &hash_to_compare = hashes[j];
+
+                    if (hash_for_comparison == hash_to_compare) {
+                            duplicate_files.push_back(std::move(duplicate_group.files[j]));
                         indices_to_skip.insert(j);
                     }
                 }
             }
 
-            if (duplicate_group.empty() == false) {
-                duplicate_group.push_back(file_for_comparison);
-                duplicates.emplace_back(size_group.file_size, std::move(duplicate_group));
+            if (duplicate_files.empty() == false) {
+                    duplicate_files.push_back(std::move(duplicate_group.files[i]));
+                    new_duplicate_groups.emplace_back(duplicate_group.file_size, std::move(duplicate_files));
             }
         }
-
-        // NOTE: Too complicated, dropped for now
-        // for(auto end_it = std::prev(size_entry.end(), 1); end_it != size_entry.begin(); ) {
-        //     const auto &file_to_compare = *end_it;
-        //     std::vector<fs::path> duplicate_group;
-        //     auto new_end_it = std::remove_if(size_entry.begin(), end_it,
-        //         [file_to_compare, &duplicate_group](auto file){
-        //             bool equal = is_files_binary_equal(file_to_compare, file);
-        //             if (equal) {
-        //                 duplicate_group.push_back(file);
-        //             }
-        //             return equal;
-        //         }
-        //     );
-        //     if (duplicate_group.size() > 0) {
-        //         duplicate_group.push_back(file_to_compare);
-        //         duplicates.push_back(std::move(duplicate_group));
-        //     }
-        // }
     }
 
-    return duplicates;
+    return new_duplicate_groups;
+}
+
+std::vector<fdup::DuplicateGroup>
+find_duplicates(const std::vector<fdup::DuplicateGroup> &&duplicate_groups)
+{
+    std::vector<fdup::DuplicateGroup> new_duplicate_groups{};
+
+    for (auto &duplicate_group: duplicate_groups) {
+        const auto files_in_group = duplicate_group.files.size();
+        std::unordered_set<std::size_t> indices_to_skip{};
+
+        // NOTE: Я так и не придумал как объединить этот кусок с почти таким же как и в split_by_hash()
+        // Оба этих алгоритма убирают, уникальные элемпенты и группируют дубликаты
+        for (std::size_t i = 0; i != files_in_group - 1; ++i) {
+            if (indices_to_skip.find(i) != indices_to_skip.end()) {
+                continue;
+            }
+
+            std::vector<fs::path> duplicate_files{};
+            auto &file_for_comparison = duplicate_group.files[i];
+
+            for (std::size_t j = i + 1; j != files_in_group; ++j) {
+                if (indices_to_skip.find(j) == indices_to_skip.end()) {
+                    auto &file_to_compare = duplicate_group.files[j];
+
+                    if (are_files_binary_equal(duplicate_group.file_size, file_for_comparison, file_to_compare)) {
+                        duplicate_files.push_back(file_to_compare);
+                        indices_to_skip.insert(j);
+                    }
+                }
+            }
+
+            if (duplicate_files.empty() == false) {
+                duplicate_files.push_back(file_for_comparison);
+                new_duplicate_groups.emplace_back(duplicate_group.file_size, std::move(duplicate_files));
+            }
+        }
+    }
+
+    return new_duplicate_groups;
 }
 
 void
@@ -242,10 +223,10 @@ get_duplicate_files(Options &options)
     auto dir2_files = get_files_grouped_by_size(options.dir2, options.search_recursively);
 
     auto possible_duplicates = merge_size_groups(std::move(dir1_files), std::move(dir2_files));
-    auto duplicates_grouped_by_partial_hashes = split_by_partial_hash(std::move(possible_duplicates));
-    auto duplicates_grouped_by_full_hashes = split_by_full_hash(std::move(duplicates_grouped_by_partial_hashes));
+    auto duplicates_grouped_by_partial_hash = split_by_hash(std::move(possible_duplicates), true);
+    auto duplicates_grouped_by_full_hash = split_by_hash(std::move(duplicates_grouped_by_partial_hash), false);
 
-    return find_duplicates(duplicates_grouped_by_full_hashes);
+    return find_duplicates(std::move(duplicates_grouped_by_full_hash));
 }
 
 } // namespace fdup
