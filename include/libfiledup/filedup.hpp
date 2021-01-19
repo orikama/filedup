@@ -5,6 +5,7 @@
 #include <boost/filesystem/path.hpp>
 #include <boost/filesystem/exception.hpp>
 
+#include <libfiledup/exception.hpp>
 
 namespace fdup
 {

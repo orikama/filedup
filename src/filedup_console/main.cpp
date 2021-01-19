@@ -64,7 +64,7 @@ int main(int argc, const char *argv[])
     catch (const boost::filesystem::filesystem_error &e) {
         std::cout << "ERROR at boost::filesystem: " << e.code().message() << std::endl;
     }
-    catch (const std::exception &e) {
+    catch (const fdup::options_error &e) {
         std::cout << "ERROR: " << e.what() << std::endl;
     }
 
