@@ -2,8 +2,15 @@ cmake_minimum_required(VERSION 3.15 FATAL_ERROR)
 
 project(filedup CXX)
 
+
+# if using conan
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/conaninfo.txt)
+    set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
+endif()
+
+
 # NOTE: it works without linking to Boost.TypeErasure ?
-find_package(Boost REQUIRED COMPONENTS filesystem program_options)
+find_package(Boost REQUIRED COMPONENTS system filesystem program_options)
 
 
 set(INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/include")
@@ -28,9 +35,10 @@ set(libfiledup_SRC
 
 add_library(libfiledup STATIC ${libfiledup_SRC} ${libfiledup_HEADERS})
 target_include_directories(libfiledup PUBLIC ${INCLUDE_DIR})
-target_link_libraries(libfiledup PUBLIC Boost::filesystem)
+target_link_libraries(libfiledup PUBLIC Boost::system Boost::filesystem)
 target_compile_features(libfiledup PUBLIC cxx_std_14)
-set_property(TARGET libfiledup PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+# Не успел разобраться, как детектить, что нужно сделать static CRT linkage при сборке с msvc
+#set_property(TARGET libfiledup PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 
 # --------------- filedup_console ---------------
@@ -40,7 +48,7 @@ set(filedup_console_SRC ${filedup_console_SRC_DIR}/main.cpp)
 add_executable(filedup_console ${filedup_console_SRC})
 target_include_directories(filedup_console PRIVATE ${filedup_console_SRC_DIR})
 target_link_libraries(filedup_console PRIVATE libfiledup Boost::program_options)
-set_property(TARGET filedup_console PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+#set_property(TARGET filedup_console PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 # NOTE: Use smth like this: ?
 #if(WIN32)
