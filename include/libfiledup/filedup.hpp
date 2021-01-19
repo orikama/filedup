@@ -2,20 +2,12 @@
 
 #include <vector>
 
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/exception.hpp>
-
+#include <libfiledup/options.hpp>
 #include <libfiledup/exception.hpp>
+
 
 namespace fdup
 {
-
-struct Options
-{
-    boost::filesystem::path dir1;
-    boost::filesystem::path dir2;
-    bool search_recursively;
-};
 
 struct DuplicateGroup
 {

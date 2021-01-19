@@ -1,10 +1,12 @@
 #include <iostream>
 #include <utility>
 
+#include <boost/filesystem/exception.hpp>
 #include <boost/optional.hpp>
 #include <boost/program_options.hpp>
 
 #include <libfiledup/filedup.hpp>
+#include <libfiledup/exception.hpp>
 
 
 boost::optional<fdup::Options>

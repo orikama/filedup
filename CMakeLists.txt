@@ -13,13 +13,16 @@ set(SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 # --------------- libfiledup ---------------
 set(libfiledup_HEADERS_DIR "${INCLUDE_DIR}/libfiledup")
 set(libfiledup_HEADERS
+    ${libfiledup_HEADERS_DIR}/exception.hpp
     ${libfiledup_HEADERS_DIR}/filedup.hpp
+    ${libfiledup_HEADERS_DIR}/options.hpp
     ${libfiledup_HEADERS_DIR}/detail/file_hash.hpp
 )
 
 set(libfiledup_SRC_DIR "${SRC_DIR}/libfiledup")
 set(libfiledup_SRC
     ${libfiledup_SRC_DIR}/filedup.cpp
+    ${libfiledup_SRC_DIR}/options.cpp
     ${libfiledup_SRC_DIR}/detail/file_hash.cpp
 )
 

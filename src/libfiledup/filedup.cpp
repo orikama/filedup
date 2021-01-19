@@ -1,4 +1,6 @@
 #include <libfiledup/filedup.hpp>
+
+#include <libfiledup/exception.hpp>
 #include <libfiledup/detail/file_hash.hpp>
 
 #include <algorithm>
@@ -183,30 +185,6 @@ find_duplicates(const std::vector<fdup::DuplicateGroup> &&duplicate_groups)
     return new_duplicate_groups;
 }
 
-void
-validate_options(const fdup::Options &options)
-{
-    if (fs::is_directory(options.dir1) == false) {
-        throw fdup::options_error("DIR1 is not a directory");
-    }
-    if (fs::is_directory(options.dir2) == false) {
-        throw fdup::options_error("DIR2 is not a directory");
-    }
-
-    const auto dir1_canonical = fs::canonical(options.dir1).string();
-    const auto dir2_canonical = fs::canonical(options.dir2).string();
-
-    if (dir1_canonical == dir2_canonical) {
-        throw fdup::options_error("DIR1 and DIR2 must not point to the same directory");
-    }
-
-    if (options.search_recursively) {
-        const auto min_length = std::min(dir1_canonical.size(), dir2_canonical.size());
-        if (dir1_canonical.compare(0, min_length, dir2_canonical, 0, min_length) == 0) {
-            throw fdup::options_error("One DIR cannot be subfolder of the other, if 'recursively' option is specified");
-        }
-    }
-}
 
 namespace fdup
 {
@@ -214,7 +192,7 @@ namespace fdup
 std::vector<DuplicateGroup>
 get_duplicate_files(Options &options)
 {
-    validate_options(options);
+    options.validate_options();
 
     options.dir1.make_preferred();
     options.dir2.make_preferred();

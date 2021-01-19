@@ -1,6 +1,6 @@
+#include <libfiledup/detail/file_hash.hpp>
 
 #include <fstream>
-#include <libfiledup/detail/file_hash.hpp>
 
 
 namespace fs = boost::filesystem;
